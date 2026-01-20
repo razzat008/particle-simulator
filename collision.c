@@ -31,14 +31,22 @@ typedef struct {
   // COLLIDED collided;
 } Particle;
 
+Particle particles[BALLS];
 // 0,600 -> 0,1 => 0,1/600
 void update_particle(Particle *);
+void update_particles();
 void draw_particle(Particle *);
-
+void draw_particles();
 // draw circle
 void draw_particle(Particle *particle) {
   DrawCircle(particle->coord.x, particle->coord.y, particle->r,
              particle->color);
+}
+
+void draw_particles() {
+  for (int i = 0; i < BALLS; i++) {
+    draw_particle(particles + i);
+  }
 }
 
 // changing particle position depending upon velocity
@@ -72,18 +80,37 @@ void update_particle(Particle *particle) {
   }
 }
 
+void update_particles() {
+  for (int i = 0; i < BALLS; i++) {
+    update_particle(particles + i);
+  }
+}
+
+void InitParticles() {
+  for (int i = 1; i < BALLS; i++) {
+    particles[i] = (Particle){
+        {GetRandomValue(0, WINDOW_WIDTH), GetRandomValue(0, WINDOW_HEIGHT)},
+        50,
+        GetRandomValue(-10, 10),
+        GetRandomValue(-10, 10),
+        RED};
+  }
+}
+
 int main(int argc, char *argv[]) {
   // CPU consumption control
   SetConfigFlags(FLAG_VSYNC_HINT);
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT,
              "Smashing balls using physics, I guess");
   SetTargetFPS(60);
-  Particle particle = {{300, 300}, 50, 10, 10, RED};
+  // Particle particle = {{300, 300}, 50, 10, 10, RED};
+  InitParticles();
   while (!WindowShouldClose() && !IsKeyPressed(KEY_Q)) {
     BeginDrawing();
+    DrawFPS(10, 10);
     ClearBackground(BLACK);
-    draw_particle(&particle);
-    update_particle(&particle);
+    draw_particles();
+    update_particles();
     EndDrawing();
   }
 
