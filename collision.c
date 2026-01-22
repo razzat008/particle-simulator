@@ -12,14 +12,17 @@
 (x0,y1)
 */
 #include "raylib.h"
+#include <stdbool.h>
+#include <time.h>
 
 #define WINDOW_HEIGHT 600
 #define WINDOW_WIDTH 800
 
-#define BALLS 10
+#define BALLS 100
 
 typedef struct {
-  float x, y;
+  float x;
+  float y;
 } Coordinates;
 
 // typedef enum { LEFT, RIGHT, TOP, BOTTOM } COLLIDED;
@@ -32,11 +35,12 @@ typedef struct {
 } Particle;
 
 Particle particles[BALLS];
-// 0,600 -> 0,1 => 0,1/600
+
 void update_particle(Particle *);
 void update_particles();
 void draw_particle(Particle *);
 void draw_particles();
+
 // draw circle
 void draw_particle(Particle *particle) {
   DrawCircle(particle->coord.x, particle->coord.y, particle->r,
@@ -86,14 +90,32 @@ void update_particles() {
   }
 }
 
-void InitParticles() {
+void init_particles() {
+  SetRandomSeed(time(NULL));
   for (int i = 1; i < BALLS; i++) {
     particles[i] = (Particle){
         {GetRandomValue(0, WINDOW_WIDTH), GetRandomValue(0, WINDOW_HEIGHT)},
-        50,
+        GetRandomValue(5, 15),
         GetRandomValue(-10, 10),
         GetRandomValue(-10, 10),
         RED};
+  }
+}
+
+void collide_all_particles() {
+  Particle p1, p2;
+  for (int i = 0; i < BALLS; i++) {
+    for (int j = 0; j < BALLS; j++) {
+      if (i == j) {
+        return;
+      }
+      p1 = particles[i];
+      p2 = particles[j];
+      bool collided =  CheckCollisionCircles((Vector2)p1.coord, p1.r, (Vector2)p2.coord, p2.r);
+      if (collided){
+        // todo
+      }
+    }
   }
 }
 
@@ -103,14 +125,14 @@ int main(int argc, char *argv[]) {
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT,
              "Smashing balls using physics, I guess");
   SetTargetFPS(60);
-  // Particle particle = {{300, 300}, 50, 10, 10, RED};
-  InitParticles();
+  init_particles();
   while (!WindowShouldClose() && !IsKeyPressed(KEY_Q)) {
     BeginDrawing();
     DrawFPS(10, 10);
     ClearBackground(BLACK);
-    draw_particles();
     update_particles();
+    collide_all_particles();
+    draw_particles();
     EndDrawing();
   }
 
