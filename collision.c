@@ -13,12 +13,13 @@
 */
 #include "raylib.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <time.h>
 
 #define WINDOW_HEIGHT 600
 #define WINDOW_WIDTH 800
 
-#define BALLS 100
+#define BALLS 60
 
 typedef struct {
   float x;
@@ -40,6 +41,7 @@ void update_particle(Particle *);
 void update_particles();
 void draw_particle(Particle *);
 void draw_particles();
+void repulse(Particle *, Particle *);
 
 // draw circle
 void draw_particle(Particle *particle) {
@@ -95,28 +97,37 @@ void init_particles() {
   for (int i = 1; i < BALLS; i++) {
     particles[i] = (Particle){
         {GetRandomValue(0, WINDOW_WIDTH), GetRandomValue(0, WINDOW_HEIGHT)},
-        GetRandomValue(5, 15),
-        GetRandomValue(-10, 10),
-        GetRandomValue(-10, 10),
-        RED};
+        GetRandomValue(5, 15),   // radius
+        GetRandomValue(-5, 5), // vx
+        GetRandomValue(-5, 5), // vy
+       WHITE};
   }
 }
 
 void collide_all_particles() {
-  Particle p1, p2;
+  Particle *p1, *p2;
   for (int i = 0; i < BALLS; i++) {
-    for (int j = 0; j < BALLS; j++) {
-      if (i == j) {
-        return;
-      }
-      p1 = particles[i];
-      p2 = particles[j];
-      bool collided =  CheckCollisionCircles((Vector2)p1.coord, p1.r, (Vector2)p2.coord, p2.r);
-      if (collided){
-        // todo
+    for (int j = i + 1; j < BALLS; j++) {
+      p1 = &particles[i];
+      p2 = &particles[j];
+      Vector2 c1 = {p1->coord.x, p1->coord.y};
+      Vector2 c2 = {p2->coord.x, p2->coord.y};
+      bool collided = CheckCollisionCircles(c1, p1->r, c2, p2->r);
+      if (collided) {
+        repulse(p1, p2);
       }
     }
   }
+}
+
+void repulse(Particle *p1, Particle *p2) {
+  // this is shit
+  p1->vx *= -1;
+  p1->vy *= -1;
+  p2->vx *= -1;
+  p2->vy *= -1;
+
+  return;
 }
 
 int main(int argc, char *argv[]) {
@@ -129,10 +140,10 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose() && !IsKeyPressed(KEY_Q)) {
     BeginDrawing();
     DrawFPS(10, 10);
+    draw_particles();
     ClearBackground(BLACK);
     update_particles();
     collide_all_particles();
-    draw_particles();
     EndDrawing();
   }
 
