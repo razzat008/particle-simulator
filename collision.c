@@ -20,7 +20,9 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_WIDTH 800
 
-#define BALLS 3
+#define BALLS 30
+#define MAX_SPEED 10.0f
+#define PENETRATION_SLOP 0.01f
 
 typedef struct {
   float x;
@@ -67,7 +69,7 @@ void draw_particles() {
   }
 }
 
-// changing particle position depending upon velocity
+// bounding particles within the bounds of observable universe
 void update_particle(Particle *particle) {
   particle->coord.x += particle->velocity.x;
   particle->coord.y += particle->velocity.y;
@@ -106,18 +108,24 @@ void update_particles() {
 
 void init_particles() {
   SetRandomSeed(time(NULL));
+  Color colorarry[] = {WHITE, BLACK, RED, PURPLE, GREEN, YELLOW};
+  int arraysize = sizeof(colorarry) / sizeof(colorarry[0]);
   for (int i = 0; i < BALLS; i++) {
+    // lets generate random colors lesssgooooooo
+    int randomIndex = GetRandomValue(0, arraysize - 1);
     particles[i] = (Particle){
         {GetRandomValue(0, WINDOW_WIDTH), GetRandomValue(0, WINDOW_HEIGHT)},
-        GetRandomValue(5, 15), // radius
+        GetRandomValue(5, 30), // radius
         {
             GetRandomValue(-5, 5),
             GetRandomValue(-5, 5),
         }, // velocity.y
-        WHITE};
+        colorarry[randomIndex]};
   }
 }
 
+// verryyy shitty logic, takes a lot of computation
+// will improve this when I get bored again
 void collide_all_particles() {
   Particle *p1, *p2;
   for (int i = 0; i < BALLS; i++) {
@@ -137,20 +145,59 @@ void collide_all_particles() {
 // perfect elastic collision
 // using conservation of kinetic energy & conservation of momentum
 void repulse(Particle *p1, Particle *p2) {
+
   // position of each neighbouring particles
   Vector2 pos1 = {p1->coord.x, p1->coord.y};
   Vector2 pos2 = {p2->coord.x, p2->coord.y};
-
-  // veclocity of each neighbouring particles
-  Vector2 v1 = p1->velocity;
-  Vector2 v2 = p2->velocity;
 
   // mass of each neighbouring particles
   float m1 = p1->mass;
   float m2 = p2->mass;
 
+  Vector2 delta = Vector2Subtract(pos1, pos2);
+  float dist = Vector2Length(delta);
+  if (dist == 0.0) {
+    return;
+  }
+  /*      r1        r2
+         <-->      <-->
+
+      (  O  )      (  O  )
+         |            |
+         |<-- dist -->|
+
+   dist > r1 + r2
+   overlap = (r1 + r2) - dist < 0
+  */
+
+  float overlap = (p1->r + p2->r) - dist;
+
+  // letting things overlap to some extent (PENETRATION_SLOP)
+  if (overlap > PENETRATION_SLOP) {
+    // unit normal vector(scaling down)
+    Vector2 normal = Vector2Scale(delta, 1.0f / dist);
+
+    // push them apart proportional to mass
+    float totalMass = m1 + m2;
+
+    p1->coord.x += normal.x * (overlap * (m2 / totalMass));
+    p1->coord.y += normal.y * (overlap * (m2 / totalMass));
+
+    p2->coord.x -= normal.x * (overlap * (m1 / totalMass));
+    p2->coord.y -= normal.y * (overlap * (m1 / totalMass));
+  }
+
+  // veclocity of each neighbouring particles
+  Vector2 v1 = p1->velocity;
+  Vector2 v2 = p2->velocity;
+
   Vector2 diffvec = Vector2Subtract(v1, v2);
   Vector2 positionvectors = Vector2Subtract(pos1, pos2);
+
+  // checking if two particles are approaching or not
+  if (Vector2DotProduct(diffvec, positionvectors) >= 0) {
+    return;
+  }
 
   float distSq = Vector2DotProduct(positionvectors, positionvectors);
   if (distSq == 0.0f)
@@ -172,8 +219,8 @@ void repulse(Particle *p1, Particle *p2) {
   Vector2 newv2 = Vector2Subtract(v2, Vector2Scale(positionvectors2, scalar2));
 
   // new velocity after collision
-  p1->velocity = newv1;
-  p2->velocity = newv2;
+  p1->velocity = Vector2ClampValue(newv1, 0, MAX_SPEED);
+  p2->velocity = Vector2ClampValue(newv2, 0, MAX_SPEED);
 }
 
 int main(int argc, char *argv[]) {
