@@ -18,7 +18,7 @@
 #include <time.h>
 
 #define WINDOW_HEIGHT 600
-#define WINDOW_WIDTH 800
+#define WINDOW_WIDTH 600
 
 #define BALLS 30
 #define MAX_SPEED 10.0f
@@ -57,8 +57,6 @@ void repulse(Particle *, Particle *);
 
 // draw circle
 void draw_particle(Particle *particle) {
-  float mass = (float)1000 * 4 / 3 * PI * (powf(particle->r, 3));
-  particle->mass = mass;
   DrawCircle(particle->coord.x, particle->coord.y, particle->r,
              particle->color);
 }
@@ -121,6 +119,9 @@ void init_particles() {
             GetRandomValue(-5, 5),
         }, // velocity.y
         colorarry[randomIndex]};
+
+    particles[i].mass =
+        (float)1000 * 4.0f / 3.0f * PI * powf(particles[i].r, 3);
   }
 }
 
@@ -232,9 +233,9 @@ int main(int argc, char *argv[]) {
   init_particles();
   while (!WindowShouldClose() && !IsKeyPressed(KEY_Q)) {
     BeginDrawing();
+    ClearBackground(BLACK);
     DrawFPS(10, 10);
     draw_particles();
-    ClearBackground(BLACK);
     update_particles();
     collide_all_particles();
     EndDrawing();
